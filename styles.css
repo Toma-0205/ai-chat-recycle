@@ -1,0 +1,200 @@
+/**
+ * Gemini to Notion Knowledge Archiver v4.0 - Styles
+ */
+
+/* ボタンコンテナ（回答の下） */
+.gemini-to-notion-button-container {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap; 
+  gap: 8px;
+}
+
+/* 共通ボタンスタイル */
+.gemini-to-notion-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #000000, #2d2d2d);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.gemini-to-notion-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.1);
+}
+
+.gemini-to-notion-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.gemini-to-notion-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.gemini-to-notion-button.saved {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* トースト通知 */
+.gemini-to-notion-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 10001;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+
+.gemini-to-notion-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.gemini-to-notion-toast.success {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.gemini-to-notion-toast.error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* 編集可能プレビューダイアログ */
+.gemini-to-notion-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gemini-to-notion-dialog {
+  background: #1e1e2e;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 600px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gemini-to-notion-dialog h3 {
+  color: #fff;
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+}
+
+.gemini-to-notion-dialog .form-group {
+  margin-bottom: 16px;
+}
+
+.gemini-to-notion-dialog .form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.gemini-to-notion-dialog .form-group input,
+.gemini-to-notion-dialog .form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.gemini-to-notion-dialog .form-group input:focus,
+.gemini-to-notion-dialog .form-group textarea:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+}
+
+.gemini-to-notion-dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gemini-to-notion-dialog .dialog-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.gemini-to-notion-dialog .dialog-btn.cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #aaa;
+}
+
+.gemini-to-notion-dialog .dialog-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.gemini-to-notion-dialog .dialog-btn.confirm {
+  background: linear-gradient(135deg, #000, #2d2d2d);
+  color: #fff;
+}
+
+.gemini-to-notion-dialog .dialog-btn.confirm:hover {
+  background: linear-gradient(135deg, #1a1a1a, #3d3d3d);
+}

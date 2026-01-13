@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Gemini to Notion v4.0 - 設定</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+      color: #e8e8e8;
+      padding: 40px;
+    }
+    .container { max-width: 650px; margin: 0 auto; }
+    h1 { color: #00d4ff; margin-bottom: 30px; }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    label { display: block; margin-bottom: 8px; color: #aaa; font-weight: bold; }
+    input {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.3); color: #fff; margin-bottom: 16px;
+    }
+    .btn {
+      padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+      background: linear-gradient(135deg, #00d4ff, #7c3aed); color: #fff;
+    }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; padding: 16px; border-radius: 8px;
+      background: #10b981; color: #fff; opacity: 0; transition: opacity 0.3s;
+    }
+    .toast.show { opacity: 1; }
+    
+    .steps { margin-top: 20px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; }
+    .steps h3 { margin-top: 0; color: #ccc; font-size: 1rem; }
+    .steps ol { padding-left: 20px; color: #bbb; line-height: 1.6; }
+    .steps li { margin-bottom: 8px; }
+    .warning { color: #f87171; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📓 Gemini to Notion <span style="font-size:0.5em; background:#00d4ff; color:#fff; padding:2px 6px; border-radius:4px;">v4.0</span></h1>
+
+    <div class="card">
+      <h2>Notion API設定</h2>
+      
+      <div class="steps">
+        <h3>⚠️ 重要な手順：データベースへの接続</h3>
+        <ol>
+          <li><a href="https://www.notion.so/my-integrations" target="_blank" style="color:#00d4ff;">Notion Integrations</a> でインテグレーションを作成</li>
+          <li>発行された <code>Internal Integration Token</code> をコピーして下に入力</li>
+          <li><span class="warning">保存先のNotionデータベースを開き、右上の「...」メニューなどから「Connect to」または「接続」を選択し、作成したインテグレーションを追加してください。</span> これを忘れると保存できません。</li>
+          <li>データベースのURLからIDをコピーして下に入力<br><small>例: notion.so/myworkspace/<b>a8b...123</b>?v=...</small></li>
+        </ol>
+      </div>
+      
+      <br>
+
+      <label>Internal Integration Token</label>
+      <input type="password" id="notionApiKey" placeholder="ntn_...">
+      
+      <label>Database ID</label>
+      <input type="text" id="notionDatabaseId" placeholder="xxxxxxxx...">
+      
+      <button class="btn" id="saveBtn">💾 設定を保存</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="options.js"></script>
+</body>
+</html>

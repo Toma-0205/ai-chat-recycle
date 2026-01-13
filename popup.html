@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini to Notion</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e8e8e8;
+      width: 280px;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .logo {
+      font-size: 24px;
+    }
+
+    .title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .version {
+      font-size: 0.65rem;
+      color: #00d4ff;
+      background: rgba(0, 212, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+
+    .credential-status {
+      font-size: 0.75rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .credential-status.configured {
+      background: rgba(74, 222, 128, 0.1);
+      color: #4ade80;
+    }
+
+    .credential-status.not-configured {
+      background: rgba(248, 113, 113, 0.1);
+      color: #f87171;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #000, #2d2d2d);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ccc;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .info {
+      margin-top: 12px;
+      font-size: 0.7rem;
+      color: #666;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">📓</span>
+    <span class="title">Gemini to Notion <span class="version">v3.0</span></span>
+  </div>
+
+  <div class="credential-status not-configured" id="credentialStatus">
+    設定が未完了です
+  </div>
+
+  <div class="actions">
+    <a href="options.html" target="_blank" class="btn btn-primary">⚙️ 設定を開く</a>
+    <a href="https://gemini.google.com" target="_blank" class="btn btn-secondary">💬 Geminiを開く</a>
+  </div>
+
+  <p class="info">
+    🔄 スレッド全体を抽出<br>
+    🤖 Gemini APIで要約<br>
+    📋 Notionに構造化保存
+  </p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
