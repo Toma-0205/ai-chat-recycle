@@ -22,6 +22,33 @@ function textToNotionBlocks(text) {
   }).filter(block => block.paragraph.rich_text[0].text.content.length > 0);
 }
 
+// =============================================================================
+// Helper: タイトルプロパティのキー特定
+// =============================================================================
+
+async function getTitlePropertyKey(notionApiKey, notionDatabaseId) {
+  try {
+    const dbResponse = await fetch(`https://api.notion.com/v1/databases/${notionDatabaseId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${notionApiKey}`,
+        'Notion-Version': NOTION_API_VERSION
+      }
+    });
+    
+    if (dbResponse.ok) {
+      const dbData = await dbResponse.json();
+      const titleProp = Object.entries(dbData.properties).find(([key, prop]) => prop.type === 'title');
+      if (titleProp) {
+        return titleProp[0]; 
+      }
+    }
+  } catch (e) {
+    console.error('Database info fetch error:', e);
+  }
+  return 'Name'; // default
+}
+
 async function createNotionPage(data) {
   const { notionApiKey, notionDatabaseId } = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
   
@@ -30,7 +57,6 @@ async function createNotionPage(data) {
   }
   
   // ページ本文のブロック構築
-  // プロパティではなく本文に情報を集約する（スキーマエラー回避のため）
   const children = [
     // 概要セクション
     { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: '📝 概要' } }] } },
@@ -50,56 +76,13 @@ async function createNotionPage(data) {
     ...textToNotionBlocks(data.content)
   ];
   
-  // プロパティ（最低限の構成）
-  // 多くのデータベースでタイトルプロパティは 'Name' か '名前' か 'title'
-  // まずは 'ID' からデータベース情報を取得してプロパティ名を確認するのがベストだが、
-  // 簡易的に 'Name' (英語デフォルト) と '名前' (日本語デフォルト) の両方を試すわけにはいかない（APIエラーになる）
-  // したがって、ユーザーに最も一般的な 'Name' を使用するか、汎用的なペイロード構築が必要。
-  
-  // タイトルプロパティのキーを特定するのは難しいため、
-  // ここでは最も安全な策として、タイトルのみを設定し、他のカスタムプロパティ（回答、概要など）は除外する。
-  // 本文(children)にあらゆる情報を詰め込むことで、プロパティ不足エラーを回避する。
-  
-  // 注意: タイトルのキーがデータベースによって異なる（'Name', '名前', 'Title'など）
-  // APIでデータベース情報を取得してタイトルキーを特定するロジックを追加
-  
-  let titleKey = 'Name'; // デフォルト
-  
-  try {
-    // データベース情報を取得してプロパティ名を確認
-    const dbResponse = await fetch(`https://api.notion.com/v1/databases/${notionDatabaseId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${notionApiKey}`,
-        'Notion-Version': NOTION_API_VERSION
-      }
-    });
-    
-    if (dbResponse.ok) {
-      const dbData = await dbResponse.json();
-      // titleタイプのプロパティを探す
-      const titleProp = Object.entries(dbData.properties).find(([key, prop]) => prop.type === 'title');
-      if (titleProp) {
-        titleKey = titleProp[0]; // '名前' や 'Name' などを取得
-      }
-    }
-  } catch (e) {
-    console.error('Database info fetch error:', e);
-    // エラー時はデフォルト 'Name' またはユーザーの環境に合わせて '名前' をトライ
-    // 日本語環境のユーザーが多いと想定して '名前' をフォールバックにする手もあるが
-    // 既存のエラーが '回答 is not a property...' なので、タイトル以外のプロパティが原因。
-    // タイトルのキー自体はエラーに出ていない可能性があるが、念のため動的取得する。
-  }
+  const titleKey = await getTitlePropertyKey(notionApiKey, notionDatabaseId);
 
   const properties = {};
   properties[titleKey] = {
     title: [{ text: { content: (data.title || 'Gemini会話まとめ').substring(0, 100) } }]
   };
   
-  // カスタムプロパティ（回答、概要、時期、やること）は
-  // ユーザーのデータベースに存在しないことが確定したため、設定しない。
-  // 全て本文 (children) に入れたのでデータロスはない。
-
   const payload = {
     parent: { database_id: notionDatabaseId },
     properties,
@@ -120,14 +103,101 @@ async function createNotionPage(data) {
   
   if (!response.ok) {
     const errorMessage = responseData.message || responseData.code || `HTTP ${response.status}`;
-    // タイトルキーが間違っている場合の再試行ロジック（簡易）
     if (errorMessage.includes('property that exists')) {
-       throw new Error(`保存エラー: データベースのプロパティ（列）が一致しません。本文にまとめて保存しようとしましたが、タイトル列の特定にも失敗している可能性があります。\n詳細: ${errorMessage}`);
+       throw new Error(`保存エラー: データベースのプロパティ（列）が一致しません。\n詳細: ${errorMessage}`);
     }
     throw new Error(`Notion保存エラー: ${errorMessage}`);
   }
   
   return { success: true, pageId: responseData.id, pageUrl: responseData.url };
+}
+
+// =============================================================================
+// Notion API ページ取得・検索 (v5.0 Import機能)
+// =============================================================================
+
+async function searchNotionPages(query = '') {
+  const { notionApiKey, notionDatabaseId } = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
+  if (!notionApiKey || !notionDatabaseId) throw new Error('Notion設定が未完了です');
+
+  const payload = {
+    page_size: 20, // v5.4: 20件に増加
+    sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }]
+  };
+
+  if (query && query.trim().length > 0) {
+    // タイトルプロパティ名を特定してフィルタリング
+    const titleKey = await getTitlePropertyKey(notionApiKey, notionDatabaseId);
+    payload.filter = {
+      property: titleKey,
+      title: {
+        contains: query.trim()
+      }
+    };
+  }
+
+  const response = await fetch(`https://api.notion.com/v1/databases/${notionDatabaseId}/query`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${notionApiKey}`,
+      'Notion-Version': NOTION_API_VERSION,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to fetch pages');
+  }
+
+  const data = await response.json();
+  return data.results.map(page => {
+    let title = '無題のページ';
+    const titleProp = Object.values(page.properties).find(prop => prop.type === 'title');
+    if (titleProp && titleProp.title && titleProp.title.length > 0) {
+      title = titleProp.title.map(t => t.plain_text).join('');
+    }
+    
+    return {
+      id: page.id,
+      title: title || '無題のページ',
+      lastEdited: page.last_edited_time,
+      url: page.url
+    };
+  });
+}
+
+async function getNotionPageBlocks(pageId) {
+  const { notionApiKey } = await chrome.storage.local.get(['notionApiKey']);
+  if (!notionApiKey) throw new Error('Notion API Key Not Found');
+
+  const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${notionApiKey}`,
+      'Notion-Version': NOTION_API_VERSION
+    }
+  });
+
+  if (!response.ok) throw new Error('Failed to fetch page content');
+
+  const data = await response.json();
+  
+  // ブロックをテキストに変換（簡易実装）
+  return data.results.map(block => {
+    if (block.type === 'paragraph' && block.paragraph.rich_text.length > 0) {
+      return block.paragraph.rich_text.map(t => t.plain_text).join('');
+    }
+    if (block.type === 'heading_1' || block.type === 'heading_2' || block.type === 'heading_3') {
+      const text = block[block.type].rich_text.map(t => t.plain_text).join('');
+      return `\n[${block.type.replace('heading_', 'H')}] ${text}`;
+    }
+    if (block.type === 'bulleted_list_item') {
+      return '• ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join('');
+    }
+    return ''; // その他のブロックは一旦無視
+  }).filter(line => line.length > 0).join('\n');
 }
 
 // =============================================================================
@@ -139,7 +209,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     createNotionPage(message.data)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
-    return true;
+    return true; // 非同期レスポンスのためにtrueを返す
   }
   
   if (message.action === 'getCredentials') {
@@ -149,6 +219,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     return true;
   }
+
+  // v5.0 Import機能
+  if (message.action === 'searchNotion') {
+    searchNotionPages(message.query)
+      .then(results => sendResponse({ success: true, results }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (message.action === 'getNotionPage') {
+    getNotionPageBlocks(message.pageId)
+      .then(content => sendResponse({ success: true, content }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
-console.log('Gemini to Notion Knowledge Archiver v4.2: Background service worker initialized');
+console.log('Gemini to Notion Knowledge Archiver v5.0: Background service worker initialized');

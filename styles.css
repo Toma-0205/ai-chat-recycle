@@ -198,3 +198,75 @@
 .gemini-to-notion-dialog .dialog-btn.confirm:hover {
   background: linear-gradient(135deg, #1a1a1a, #3d3d3d);
 }
+
+/* Import Modal */
+.import-search-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#import-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+#import-search-btn {
+  white-space: nowrap;
+}
+
+.import-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.import-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.import-item:last-child {
+  border-bottom: none;
+}
+
+.import-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.import-title {
+  color: #fff;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.import-date {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.loading-spinner {
+  padding: 20px;
+  text-align: center;
+  color: #aaa;
+}
+
+.error-msg {
+  padding: 20px;
+  text-align: center;
+  color: #ef4444;
+}
+
+.empty-msg {
+  padding: 20px;
+  text-align: center;
+  color: #aaa;
+}

@@ -109,7 +109,7 @@ title: 会話全体の核心を突いた30文字以内のタイトル。
 
 summary: 全体の要点を3行程度でまとめた概要。
 
-content: 詳しいやり取りの内容。Markdown形式の箇条書きを用い、後から見返して内容が完全に把握できるように整理してください。
+content: 詳細な議事録。全ての質問と回答のペア（ユーザーの質問とGeminiの回答）について、一つずつ漏れなく内容を要約して記載してください。Markdown形式を使用し、後から見返してスレッド全体の流れと詳細が完全に把握できるように整理してください。
 
 todos: 抽出された「次にやるべきこと（TODO）」と「既に完了したこと（DIDs）」を箇条書きで。なければ空文字。
 
@@ -146,6 +146,110 @@ function injectPromptToInput(text) {
   inputElement.dispatchEvent(new Event('input', { bubbles: true }));
   
   return true;
+}
+
+// =============================================================================
+// Notionインポート (v5.0 Import機能)
+// =============================================================================
+
+async function handleNotionImport() {
+  const overlay = document.createElement('div');
+  overlay.className = 'gemini-to-notion-dialog-overlay';
+  overlay.innerHTML = `
+    <div class="gemini-to-notion-dialog import-dialog">
+      <h3>Notionから引用</h3>
+      
+      <div class="import-search-container">
+        <input type="text" id="import-search-input" placeholder="タイトルで検索..." />
+        <button id="import-search-btn" class="dialog-btn confirm">検索</button>
+      </div>
+
+      <div id="import-list" class="import-list">
+        <div class="loading-spinner">読み込み中...</div>
+      </div>
+      <div class="dialog-actions">
+        <button class="dialog-btn cancel">閉じる</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  const listContainer = document.getElementById('import-list');
+  const searchInput = document.getElementById('import-search-input');
+  const searchBtn = document.getElementById('import-search-btn');
+
+  const executeSearch = async (query = '') => {
+    listContainer.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'searchNotion', query });
+      
+      if (!response.success) {
+        listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
+        return;
+      }
+      
+      if (response.results.length === 0) {
+        listContainer.innerHTML = '<div class="empty-msg">ページが見つかりませんでした</div>';
+        return;
+      }
+
+      listContainer.innerHTML = '';
+      response.results.forEach(page => {
+        const item = document.createElement('div');
+        item.className = 'import-item';
+        item.innerHTML = `
+          <div class="import-title">${escapeHtml(page.title)}</div>
+          <div class="import-date">${new Date(page.lastEdited).toLocaleDateString()}</div>
+        `;
+        item.addEventListener('click', () => {
+          overlay.remove();
+          fetchAndInsertPageContent(page);
+        });
+        listContainer.appendChild(item);
+      });
+
+    } catch (error) {
+      if (listContainer) listContainer.innerHTML = `<div class="error-msg">通信エラー: ${error.message}</div>`;
+    }
+  };
+
+  // Initial load
+  executeSearch();
+
+  // Search handlers
+  searchBtn.addEventListener('click', () => executeSearch(searchInput.value));
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') executeSearch(searchInput.value);
+  });
+}
+
+async function fetchAndInsertPageContent(page) {
+  showToast('ページ内容を取得中...', 'success');
+  
+  try {
+    const response = await chrome.runtime.sendMessage({ action: 'getNotionPage', pageId: page.id });
+    
+    if (!response.success) {
+      showToast(`取得エラー: ${response.error}`, 'error');
+      return;
+    }
+
+    const content = `【Notionからの引用】\nタイトル: ${page.title}\n---\n${response.content}\n---`;
+    const success = injectPromptToInput(content);
+    
+    if (success) {
+      showToast('入力欄に貼り付けました', 'success');
+    }
+    
+  } catch (error) {
+    showToast(`エラー: ${error.message}`, 'error');
+  }
 }
 
 // =============================================================================
@@ -208,7 +312,7 @@ function showToast(message, type = 'success', linkUrl = null) {
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
-  }, 5000);
+  }, 10000);
 }
 
 // =============================================================================
@@ -410,22 +514,32 @@ function insertButtonsToResponses() {
       const btnContainer = document.createElement('div');
       btnContainer.className = 'gemini-to-notion-button-container';
       
-      // 2. 「Notionへ保存」ボタン
-      const saveButton = document.createElement('button');
-      saveButton.className = BUTTON_CLASS;
-      saveButton.textContent = 'Notionへ保存';
-      saveButton.style.marginLeft = '8px'; // 2番目になるのでマージン付与
-      saveButton.addEventListener('click', () => handleSaveResponse(response, saveButton));
+      // 2. 「Notionから引用」ボタン (v5.1: インライン配置に変更)
+      const importButton = document.createElement('button');
+      importButton.className = BUTTON_CLASS;
+      importButton.textContent = 'Notionから引用';
+      importButton.title = 'Notionからページを選択して引用';
+      importButton.style.background = 'linear-gradient(135deg, #2d2d2d, #000000)';
+      importButton.addEventListener('click', handleNotionImport);
 
-      // 3. 「まとめを作成」ボタン (ここに追加)
+      // 3. 「まとめを作成」ボタン
       const summarizeButton = document.createElement('button');
       summarizeButton.className = BUTTON_CLASS;
       summarizeButton.textContent = 'まとめを作成';
       summarizeButton.title = 'ここまでの会話を要約するプロンプトを入力欄に貼り付けます';
+      summarizeButton.style.marginLeft = '8px'; // マージン付与
       summarizeButton.style.background = 'linear-gradient(135deg, #7c3aed, #4f46e5)';
       summarizeButton.addEventListener('click', () => handleInjectPrompt(summarizeButton));
+
+      // 4. 「Notionへ保存」ボタン
+      const saveButton = document.createElement('button');
+      saveButton.className = BUTTON_CLASS;
+      saveButton.textContent = 'Notionへ保存';
+      saveButton.style.marginLeft = '8px'; // マージン付与
+      saveButton.addEventListener('click', () => handleSaveResponse(response, saveButton));
       
-      // 順序を逆にする: まとめを作成 → Notionへ保存
+      // 順序: 引用 → まとめ → 保存
+      btnContainer.appendChild(importButton);
       btnContainer.appendChild(summarizeButton);
       btnContainer.appendChild(saveButton);
       
@@ -453,8 +567,12 @@ const observer = new MutationObserver(() => {
 });
 
 function initialize() {
-  console.log('Gemini to Notion v4.1: Content script initialized');
-  removeGlobalButtons();
+  console.log('Gemini to Notion v5.1: Content script initialized');
+  removeGlobalButtons(); // 古いのがあれば消す (importボタン含む)
+  // 固定ボタンがあった場合は削除 (v5.0の名残)
+  const oldImportBtn = document.getElementById('gemini-to-notion-import-btn');
+  if (oldImportBtn) oldImportBtn.remove();
+  
   insertButtonsToResponses();
   observer.observe(document.body, { childList: true, subtree: true });
 }
