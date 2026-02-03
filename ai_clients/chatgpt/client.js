@@ -12,6 +12,12 @@
   let log = console;
   const STUB_BUTTON_ID = 'notion-archiver-chatgpt-stub-btn';
 
+  function safeToast(message, type = 'success') {
+    if (ui && ui.showToast) {
+      ui.showToast(message, type);
+    }
+  }
+
   function matches(url) {
     return typeof url === 'string' && (
       url.includes('https://chatgpt.com/') ||
@@ -46,9 +52,7 @@
 
   function injectPrompt() {
     log.warn('[Archiver] ChatGPT injectPrompt is not implemented yet');
-    if (ui && ui.showToast) {
-      ui.showToast('ChatGPTの注入処理は未実装です', 'error');
-    }
+    safeToast('ChatGPTの注入処理は未実装です', 'error');
     return false;
   }
 
@@ -73,9 +77,7 @@
     button.style.cursor = 'pointer';
 
     button.addEventListener('click', () => {
-      if (ui && ui.showToast) {
-        ui.showToast('スタブボタンをクリックしました', 'success');
-      }
+      safeToast('スタブボタンをクリックしました', 'success');
     });
 
     document.body.appendChild(button);

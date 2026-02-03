@@ -12,13 +12,17 @@
 
   const log = console;
 
+  function hasRequiredModules() {
+    return (
+      window.ArchiverRegistry &&
+      window.ArchiverConfig &&
+      window.ArchiverFlows &&
+      window.ArchiverUI
+    );
+  }
+
   async function bootstrap() {
-    if (
-      !window.ArchiverRegistry ||
-      !window.ArchiverConfig ||
-      !window.ArchiverFlows ||
-      !window.ArchiverUI
-    ) {
+    if (!hasRequiredModules()) {
       log.error(
         "[Archiver] registry/config/flows/ui が見つかりません。manifest の読み込み順を確認してください。",
       );

@@ -17,6 +17,14 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+function getConfigOrNotify() {
+  if (!window.ArchiverConfig) {
+    showToast('クライアント設定に必要なモジュールが見つかりません');
+    return null;
+  }
+  return window.ArchiverConfig;
+}
+
 async function loadSettings() {
   const result = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
   if (result.notionApiKey) notionApiKeyInput.value = result.notionApiKey;
@@ -50,20 +58,16 @@ async function saveSettings() {
 
 saveBtn.addEventListener('click', saveSettings);
 saveAutoBtn.addEventListener('click', async () => {
-  if (!window.ArchiverConfig) {
-    showToast('クライアント設定に必要なモジュールが見つかりません');
-    return;
-  }
-  await window.ArchiverConfig.setActiveClientId('auto');
+  const config = getConfigOrNotify();
+  if (!config) return;
+  await config.setActiveClientId('auto');
   if (clientStatus) clientStatus.textContent = '現在: auto';
   showToast('Autoに設定しました ✓');
 });
 saveClientBtn.addEventListener('click', async () => {
-  if (!window.ArchiverConfig) {
-    showToast('クライアント設定に必要なモジュールが見つかりません');
-    return;
-  }
-  await window.ArchiverConfig.setActiveClientId(activeClientSelect.value);
+  const config = getConfigOrNotify();
+  if (!config) return;
+  await config.setActiveClientId(activeClientSelect.value);
   if (clientStatus) clientStatus.textContent = `現在: ${activeClientSelect.value}`;
   showToast('手動設定を保存しました ✓');
 });

@@ -6,6 +6,27 @@
  * 呼び出し元: ai_clients/STAR/client.js
  */
 (function (global) {
+  const BUTTON_TEXT = {
+    defaultSave: 'Notionへ保存',
+    checking: '確認中...',
+    saving: '保存中...',
+    injecting: '抽出中...',
+    injected: '✓ 貼付完了',
+    saved: '✓ 保存済み'
+  };
+
+  function setButtonState(button, { text, disabled }) {
+    if (!button) return;
+    if (typeof text === 'string') button.textContent = text;
+    if (typeof disabled === 'boolean') button.disabled = disabled;
+  }
+
+  function resetButton(button, text = BUTTON_TEXT.defaultSave) {
+    if (!button) return;
+    button.textContent = text;
+    button.disabled = false;
+  }
+
   function buildSummaryPrompt(messages) {
     const threadText = messages.map(msg => {
       const roleLabel = msg.role === 'user' ? '【ユーザー】' : '【Gemini】';
@@ -36,10 +57,7 @@ ${threadText}`;
 
   async function handleInjectPrompt({ client, ui, log, button }) {
     const originalText = button ? button.textContent : '';
-    if (button) {
-      button.textContent = '抽出中...';
-      button.disabled = true;
-    }
+    setButtonState(button, { text: BUTTON_TEXT.injecting, disabled: true });
 
     setTimeout(() => {
       const messages = client.extractThread();
@@ -47,10 +65,7 @@ ${threadText}`;
         // フォールバック: DOMセレクタが合わず、プロンプト生成ができない。
         log.warn('[Archiver] No messages found during extraction');
         ui.showToast('会話が見つかりませんでした', 'error');
-        if (button) {
-          button.textContent = originalText;
-          button.disabled = false;
-        }
+        resetButton(button, originalText);
         return;
       }
 
@@ -59,29 +74,20 @@ ${threadText}`;
 
       if (success) {
         ui.showToast('入力欄にプロンプトを貼り付けました。送信してください。', 'success');
-        if (button) {
-          button.textContent = '✓ 貼付完了';
-          setTimeout(() => {
-            button.textContent = originalText;
-            button.disabled = false;
-          }, 2000);
-        }
+        setButtonState(button, { text: BUTTON_TEXT.injected });
+        setTimeout(() => {
+          resetButton(button, originalText);
+        }, 2000);
       } else {
         // 注入失敗（入力欄未検出）。クリップボードにコピー済み。
         log.warn('[Archiver] Prompt injection failed, clipboard fallback used');
-        if (button) {
-          button.textContent = originalText;
-          button.disabled = false;
-        }
+        resetButton(button, originalText);
       }
     }, 100);
   }
 
   async function handleSaveResponse({ client, ui, log, responseElement, button }) {
-    if (button) {
-      button.disabled = true;
-      button.textContent = '確認中...';
-    }
+    setButtonState(button, { text: BUTTON_TEXT.checking, disabled: true });
 
     try {
       const credentialCheck = await chrome.runtime.sendMessage({ action: 'getCredentials' });
@@ -89,10 +95,7 @@ ${threadText}`;
         // Notionの認証情報が未設定のため中断する。
         log.warn('[Archiver] Notion credentials missing');
         ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
-        if (button) {
-          button.disabled = false;
-          button.textContent = 'Notionへ保存';
-        }
+        resetButton(button);
         return;
       }
 
@@ -101,10 +104,7 @@ ${threadText}`;
         // 応答テキストが取得できない（DOMセレクタ不一致の可能性）。
         log.warn('[Archiver] Empty response text, aborting save');
         ui.showToast('テキストが空です', 'error');
-        if (button) {
-          button.disabled = false;
-          button.textContent = 'Notionへ保存';
-        }
+        resetButton(button);
         return;
       }
 
@@ -125,7 +125,7 @@ ${threadText}`;
       }
 
       ui.showEditablePreviewDialog(data, async (finalData) => {
-        if (button) button.textContent = '保存中...';
+        setButtonState(button, { text: BUTTON_TEXT.saving });
         const result = await chrome.runtime.sendMessage({
           action: 'saveToNotion',
           data: finalData
@@ -134,30 +134,21 @@ ${threadText}`;
         if (result.success) {
           ui.showToast('Notionに保存しました ✓', 'success', result.pageUrl);
           if (button) {
-            button.textContent = '✓ 保存済み';
+            button.textContent = BUTTON_TEXT.saved;
             button.classList.add('saved');
           }
         } else {
           log.error('[Archiver] Notion save failed:', result.error);
           ui.showToast(`保存エラー: ${result.error}`, 'error');
-          if (button) {
-            button.disabled = false;
-            button.textContent = 'Notionへ保存';
-          }
+          resetButton(button);
         }
       });
 
-      if (button) {
-        button.disabled = false;
-        button.textContent = 'Notionへ保存';
-      }
+      resetButton(button);
     } catch (error) {
       log.error('[Archiver] Save flow error:', error);
       ui.showToast(`エラー: ${error.message}`, 'error');
-      if (button) {
-        button.disabled = false;
-        button.textContent = 'Notionへ保存';
-      }
+      resetButton(button);
     }
   }
 
