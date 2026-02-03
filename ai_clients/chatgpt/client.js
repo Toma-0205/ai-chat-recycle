@@ -85,9 +85,21 @@
     return messages;
   }
 
-  function extractResponseText() {
-    log.warn('[Archiver] ChatGPT extractResponseText is not implemented yet');
-    return '';
+  function extractResponseText(source) {
+    const { block, reason } = findResponseBlock(source);
+    if (!block) {
+      log.warn(`[Archiver] ChatGPT extractResponseText failed: reason=${reason || 'block_not_found'}`);
+      return '';
+    }
+
+    const text = extractBlockText(block);
+    if (!text) {
+      log.warn('[Archiver] ChatGPT extractResponseText failed: reason=empty_text');
+      return '';
+    }
+
+    log.info(`[Archiver] ChatGPT extractResponseText ok length=${text.length}`);
+    return text;
   }
 
   function extractPromptText() {
@@ -207,8 +219,27 @@
       saveButton.textContent = 'Notionへ保存';
       saveButton.title = 'Notionへ保存';
       saveButton.style.marginLeft = '8px';
-      saveButton.addEventListener('click', () => {
-        safeToast('clicked: save', 'success');
+      saveButton.addEventListener('click', (event) => {
+        if (!flows || !flows.handleSaveResponse) {
+          log.warn('[Archiver] ChatGPT save failed: reason=flow_unavailable');
+          safeToast('フローが見つかりません', 'error');
+          return;
+        }
+
+        const { block, reason } = findResponseBlock(event);
+        if (!block) {
+          log.warn(`[Archiver] ChatGPT save failed: reason=${reason || 'block_not_found'}`);
+          safeToast('返信ブロックが見つかりません', 'error');
+          return;
+        }
+
+        flows.handleSaveResponse({
+          client: api,
+          ui,
+          log,
+          responseElement: block,
+          button: saveButton
+        });
       });
 
       btnContainer.appendChild(summarizeButton);
@@ -255,6 +286,49 @@
     if (authorRole === 'assistant') return 'assistant';
     if (authorRole === 'system') return 'assistant';
     return null;
+  }
+
+  function findResponseBlock(source) {
+    let target = null;
+    if (source && source.target instanceof Element) {
+      target = source.target;
+    } else if (source instanceof Element) {
+      target = source;
+    } else if (source && source.nodeType === 1) {
+      target = source;
+    }
+
+    if (!target) {
+      return { block: null, reason: 'target_not_found' };
+    }
+
+    const assistantBlock = target.closest('[data-message-author-role="assistant"]');
+    if (assistantBlock) {
+      return { block: assistantBlock, reason: 'assistant_role' };
+    }
+
+    const articleBlock = target.closest('article');
+    if (articleBlock) {
+      return { block: articleBlock, reason: 'closest_article' };
+    }
+
+    const main = document.querySelector('main') || document.querySelector('[role="main"]');
+    let current = target;
+    while (current && current !== main) {
+      if (isLikelyMessage(current)) {
+        return { block: current, reason: 'likely_message' };
+      }
+      current = current.parentElement;
+    }
+
+    return { block: null, reason: 'no_fallback_match' };
+  }
+
+  function extractBlockText(block) {
+    const clone = block.cloneNode(true);
+    clone.querySelectorAll(`[${UI_ATTR}="1"]`).forEach((el) => el.remove());
+    const text = (clone.innerText || clone.textContent || '').trim();
+    return text.replace(/\s+/g, ' ').trim();
   }
 
   function extractMessageText(element) {
