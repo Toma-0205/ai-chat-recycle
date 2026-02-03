@@ -3,19 +3,41 @@
   "name": "Gemini to Notion Knowledge Archiver",
   "version": "4.0.0",
   "description": "Geminiの会話を要約プロンプトで構造化し、Notionへ保存する拡張機能",
-  "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
-    "https://api.notion.com/*"
-  ],
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.notion.com/*"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["https://gemini.google.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "shared/json/extract.js",
+        "shared/config/storage.js",
+        "shared/ui/toast.js",
+        "shared/ui/preview.js",
+        "ai_clients/gemini/client.js",
+        "ai_clients/chatgpt/client.js",
+        "ai_clients/registry.js",
+        "shared/flows/exportFlow.js",
+        "content.js"
+      ],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+      "js": [
+        "shared/json/extract.js",
+        "shared/config/storage.js",
+        "shared/ui/toast.js",
+        "shared/ui/preview.js",
+        "ai_clients/gemini/client.js",
+        "ai_clients/chatgpt/client.js",
+        "ai_clients/registry.js",
+        "shared/flows/exportFlow.js",
+        "content.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_idle"
     }

@@ -4,6 +4,11 @@
 const notionApiKeyInput = document.getElementById('notionApiKey');
 const notionDatabaseIdInput = document.getElementById('notionDatabaseId');
 const saveBtn = document.getElementById('saveBtn');
+const activeClientSelect = document.getElementById('activeClientId');
+const saveClientBtn = document.getElementById('saveClientBtn');
+const saveAutoBtn = document.getElementById('saveAutoBtn');
+const clientStatus = document.getElementById('clientStatus');
+const advancedSettings = document.getElementById('advancedSettings');
 const toast = document.getElementById('toast');
 
 function showToast(message) {
@@ -16,6 +21,18 @@ async function loadSettings() {
   const result = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
   if (result.notionApiKey) notionApiKeyInput.value = result.notionApiKey;
   if (result.notionDatabaseId) notionDatabaseIdInput.value = result.notionDatabaseId;
+
+  // activeClientId は共有設定なので、利用可能ならヘルパー経由で取得する。
+  if (window.ArchiverConfig) {
+    const activeClientId = await window.ArchiverConfig.getActiveClientId();
+    if (activeClientId && activeClientId !== 'auto') {
+      activeClientSelect.value = activeClientId;
+      if (advancedSettings) advancedSettings.open = true;
+    }
+    if (clientStatus) {
+      clientStatus.textContent = `現在: ${activeClientId || 'auto'}`;
+    }
+  }
 }
 
 async function saveSettings() {
@@ -32,4 +49,22 @@ async function saveSettings() {
 }
 
 saveBtn.addEventListener('click', saveSettings);
+saveAutoBtn.addEventListener('click', async () => {
+  if (!window.ArchiverConfig) {
+    showToast('クライアント設定に必要なモジュールが見つかりません');
+    return;
+  }
+  await window.ArchiverConfig.setActiveClientId('auto');
+  if (clientStatus) clientStatus.textContent = '現在: auto';
+  showToast('Autoに設定しました ✓');
+});
+saveClientBtn.addEventListener('click', async () => {
+  if (!window.ArchiverConfig) {
+    showToast('クライアント設定に必要なモジュールが見つかりません');
+    return;
+  }
+  await window.ArchiverConfig.setActiveClientId(activeClientSelect.value);
+  if (clientStatus) clientStatus.textContent = `現在: ${activeClientSelect.value}`;
+  showToast('手動設定を保存しました ✓');
+});
 document.addEventListener('DOMContentLoaded', loadSettings);

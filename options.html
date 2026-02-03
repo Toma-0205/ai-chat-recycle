@@ -20,13 +20,30 @@
       border: 1px solid rgba(255,255,255,0.1);
     }
     label { display: block; margin-bottom: 8px; color: #aaa; font-weight: bold; }
-    input {
+    input,
+    select {
       width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
       background: rgba(0,0,0,0.3); color: #fff; margin-bottom: 16px;
     }
     .btn {
       padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
       background: linear-gradient(135deg, #00d4ff, #7c3aed); color: #fff;
+    }
+    .client-status { color: #9ca3af; margin-top: 8px; margin-bottom: 16px; }
+    .auto-box {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .auto-title { font-weight: bold; color: #e5e7eb; }
+    details.advanced { margin-top: 12px; }
+    details.advanced summary {
+      cursor: pointer; color: #cbd5f5; font-weight: bold; list-style: none;
+    }
+    details.advanced summary::-webkit-details-marker { display: none; }
+    details.advanced .advanced-body {
+      margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
     }
     .toast {
       position: fixed; bottom: 20px; right: 20px; padding: 16px; border-radius: 8px;
@@ -68,8 +85,31 @@
       
       <button class="btn" id="saveBtn">💾 設定を保存</button>
     </div>
+
+    <div class="card">
+      <h2>対象チャットの設定</h2>
+      <p>通常は自動判定で問題ありません。必要時のみ詳細設定を使ってください。</p>
+      <div class="auto-box">
+        <div class="auto-title">自動判定（推奨）</div>
+        <button class="btn" id="saveAutoBtn">✅ Autoにする</button>
+      </div>
+      <p class="client-status" id="clientStatus">現在: 読み込み中...</p>
+      <details class="advanced" id="advancedSettings">
+        <summary>詳細設定（手動切り替え / 無効）</summary>
+        <div class="advanced-body">
+          <label>手動モード</label>
+          <select id="activeClientId">
+            <option value="gemini">Gemini</option>
+            <option value="chatgpt">ChatGPT (stub)</option>
+            <option value="off">Off (無効)</option>
+          </select>
+          <button class="btn" id="saveClientBtn">🧭 手動設定を保存</button>
+        </div>
+      </details>
+    </div>
   </div>
   <div class="toast" id="toast"></div>
+  <script src="shared/config/storage.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
