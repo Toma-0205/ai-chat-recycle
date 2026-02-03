@@ -50,9 +50,57 @@
     return '';
   }
 
-  function injectPrompt() {
-    log.warn('[Archiver] ChatGPT injectPrompt is not implemented yet');
-    safeToast('ChatGPTの注入処理は未実装です', 'error');
+  function injectPrompt(promptText) {
+    const promptEditable = document.querySelector('#prompt-textarea[contenteditable="true"]');
+    if (promptEditable) {
+      log.log('[Archiver] ChatGPT injectPrompt: using #prompt-textarea[contenteditable]');
+      promptEditable.focus();
+      // ProseMirror系は textContent だけだと反映されないことがあるため execCommand も併用。
+      promptEditable.textContent = promptText;
+      try {
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, promptText);
+      } catch (error) {
+        log.warn('[Archiver] ChatGPT injectPrompt: execCommand failed', error);
+      }
+      promptEditable.dispatchEvent(new Event('input', { bubbles: true }));
+      safeToast('入力欄に入れた', 'success');
+      return true;
+    }
+
+    const textareaList = Array.from(document.querySelectorAll('textarea'));
+    const textarea = textareaList.find(el => {
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none';
+    });
+    if (textarea) {
+      log.log('[Archiver] ChatGPT injectPrompt: using textarea');
+      textarea.value = promptText;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.focus();
+      safeToast('入力欄に入れた', 'success');
+      return true;
+    }
+
+    const editable = document.querySelector('[contenteditable="true"]');
+    if (editable) {
+      log.log('[Archiver] ChatGPT injectPrompt: using contenteditable');
+      editable.focus();
+      editable.textContent = promptText;
+      try {
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, promptText);
+      } catch (error) {
+        log.warn('[Archiver] ChatGPT injectPrompt: execCommand failed', error);
+      }
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+      safeToast('入力欄に入れた', 'success');
+      return true;
+    }
+
+    log.warn('[Archiver] ChatGPT injectPrompt: input element not found, clipboard fallback');
+    navigator.clipboard.writeText(promptText);
+    safeToast('クリップボードにコピーした', 'info');
     return false;
   }
 
@@ -77,7 +125,10 @@
     button.style.cursor = 'pointer';
 
     button.addEventListener('click', () => {
-      safeToast('スタブボタンをクリックしました', 'success');
+      const ok = injectPrompt('test');
+      if (ok) {
+        safeToast('入力欄に test を入れました', 'success');
+      }
     });
 
     document.body.appendChild(button);
