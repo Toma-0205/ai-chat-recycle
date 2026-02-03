@@ -27,9 +27,10 @@
     button.disabled = false;
   }
 
-  function buildSummaryPrompt(messages) {
+  function buildSummaryPrompt(messages, client) {
+    const assistantLabel = client && client.displayName ? client.displayName : 'アシスタント';
     const threadText = messages.map(msg => {
-      const roleLabel = msg.role === 'user' ? '【ユーザー】' : '【Gemini】';
+      const roleLabel = msg.role === 'user' ? '【ユーザー】' : `【${assistantLabel}】`;
       return `${roleLabel}\n${msg.content}`;
     }).join('\n\n---\n\n');
 
@@ -69,7 +70,7 @@ ${threadText}`;
         return;
       }
 
-      const prompt = buildSummaryPrompt(messages);
+      const prompt = buildSummaryPrompt(messages, client);
       const success = client.injectPrompt(prompt);
 
       if (success) {
