@@ -43,8 +43,44 @@
 
   // 未実装: ChatGPTのDOM抽出 + プロンプト注入を実装する。
   function extractThread() {
-    log.warn('[Archiver] ChatGPT extractThread is not implemented yet');
-    return [];
+    const messages = [];
+    const main = document.querySelector('main') || document.querySelector('[role="main"]');
+    if (!main) {
+      log.warn('[Archiver] ChatGPT extractThread: main not found');
+      return [];
+    }
+
+    const messageElements = collectMessageElements(main);
+    if (messageElements.length === 0) {
+      log.warn('[Archiver] ChatGPT extractThread: message elements not found');
+      return [];
+    }
+
+    let fallbackRole = 'user';
+    let usedFallback = false;
+
+    messageElements.forEach((element, index) => {
+      if (element.closest(`[${UI_ATTR}="1"]`)) return;
+
+      const text = extractMessageText(element);
+      if (!text) return;
+
+      let role = getMessageRole(element);
+      if (!role) {
+        usedFallback = true;
+        role = fallbackRole;
+        fallbackRole = fallbackRole === 'user' ? 'assistant' : 'user';
+        log.info(`[Archiver] ChatGPT extractThread: fallback推定 role=${role} index=${index}`);
+      }
+
+      messages.push({ role, text, content: text });
+    });
+
+    if (usedFallback) {
+      log.warn('[Archiver] ChatGPT extractThread: role判定に data-message-author-role が無いため fallback推定 を使用');
+    }
+
+    return messages;
   }
 
   function extractResponseText() {
@@ -163,6 +199,54 @@
     );
 
     return candidates.filter((el) => isLikelyMessage(el));
+  }
+
+  function collectMessageElements(main) {
+    const uiSelector = `[${UI_ATTR}="1"]`;
+    const roleElements = Array.from(
+      main.querySelectorAll('[data-message-author-role]'),
+    ).filter((el) => !el.closest(uiSelector));
+    if (roleElements.length > 0) return roleElements;
+
+    const candidates = Array.from(
+      main.querySelectorAll('article, section, div'),
+    ).filter((el) => !el.closest(uiSelector));
+
+    return candidates.filter((el) => isLikelyMessage(el));
+  }
+
+  function getMessageRole(element) {
+    const authorRole = element.getAttribute('data-message-author-role');
+    if (authorRole === 'user') return 'user';
+    if (authorRole === 'assistant') return 'assistant';
+    if (authorRole === 'system') return 'assistant';
+    return null;
+  }
+
+  function extractMessageText(element) {
+    const uiSelector = `[${UI_ATTR}="1"]`;
+    const parts = [];
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node || !node.parentElement) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement.closest(uiSelector)) return NodeFilter.FILTER_REJECT;
+          if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    let current = walker.nextNode();
+    while (current) {
+      parts.push(current.textContent.trim());
+      current = walker.nextNode();
+    }
+
+    if (parts.length === 0) return '';
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
   }
 
   function isLikelyMessage(el) {
