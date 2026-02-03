@@ -161,6 +161,106 @@
     return false;
   }
 
+  // =============================================================================
+  // Notion引用（Geminiと同等のUI/挙動）
+  // =============================================================================
+
+  async function handleNotionImport() {
+    const overlay = document.createElement('div');
+    overlay.className = 'gemini-to-notion-dialog-overlay';
+    overlay.innerHTML = `
+      <div class="gemini-to-notion-dialog import-dialog">
+        <h3>Notionから引用</h3>
+        
+        <div class="import-search-container">
+          <input type="text" id="import-search-input" placeholder="タイトルで検索..." />
+          <button id="import-search-btn" class="dialog-btn confirm">検索</button>
+        </div>
+
+        <div id="import-list" class="import-list">
+          <div class="loading-spinner">読み込み中...</div>
+        </div>
+        <div class="dialog-actions">
+          <button class="dialog-btn cancel">閉じる</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    const listContainer = document.getElementById('import-list');
+    const searchInput = document.getElementById('import-search-input');
+    const searchBtn = document.getElementById('import-search-btn');
+
+    const executeSearch = async (query = '') => {
+      listContainer.innerHTML = '<div class="loading-spinner">読み込み中...</div>';
+
+      try {
+        const response = await chrome.runtime.sendMessage({ action: 'searchNotion', query });
+
+        if (!response.success) {
+          listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
+          return;
+        }
+
+        if (response.results.length === 0) {
+          listContainer.innerHTML = '<div class="empty-msg">ページが見つかりませんでした</div>';
+          return;
+        }
+
+        listContainer.innerHTML = '';
+        response.results.forEach(page => {
+          const item = document.createElement('div');
+          item.className = 'import-item';
+          item.innerHTML = `
+            <div class="import-title">${escapeHtml(page.title)}</div>
+            <div class="import-date">${new Date(page.lastEdited).toLocaleDateString()}</div>
+          `;
+          item.addEventListener('click', () => {
+            overlay.remove();
+            fetchAndInsertPageContent(page);
+          });
+          listContainer.appendChild(item);
+        });
+      } catch (error) {
+        if (listContainer) listContainer.innerHTML = `<div class="error-msg">通信エラー: ${error.message}</div>`;
+      }
+    };
+
+    executeSearch();
+
+    searchBtn.addEventListener('click', () => executeSearch(searchInput.value));
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') executeSearch(searchInput.value);
+    });
+  }
+
+  async function fetchAndInsertPageContent(page) {
+    ui.showToast('ページ内容を取得中...', 'success');
+
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getNotionPage', pageId: page.id });
+
+      if (!response.success) {
+        ui.showToast(`取得エラー: ${response.error}`, 'error');
+        return;
+      }
+
+      const content = `【Notionからの引用】\nタイトル: ${page.title}\n---\n${response.content}\n---`;
+      const success = injectPrompt(content);
+
+      if (success) {
+        ui.showToast('入力欄に貼り付けました', 'success');
+      }
+    } catch (error) {
+      ui.showToast(`エラー: ${error.message}`, 'error');
+    }
+  }
+
   function injectButtons() {
     const assistantBlocks = findAssistantBlocks();
     if (!assistantBlocks.length) return;
@@ -173,6 +273,13 @@
       const btnContainer = document.createElement('div');
       btnContainer.className = BUTTON_CONTAINER_CLASS;
       btnContainer.setAttribute(UI_ATTR, '1');
+
+      const importButton = document.createElement('button');
+      importButton.className = BUTTON_CLASS;
+      importButton.textContent = 'Notionから引用';
+      importButton.title = 'Notionからページを選択して引用';
+      importButton.style.background = 'linear-gradient(135deg, #2d2d2d, #000000)';
+      importButton.addEventListener('click', handleNotionImport);
 
       const summarizeButton = document.createElement('button');
       summarizeButton.className = BUTTON_CLASS;
@@ -242,6 +349,7 @@
         });
       });
 
+      btnContainer.appendChild(importButton);
       btnContainer.appendChild(summarizeButton);
       btnContainer.appendChild(saveButton);
 
@@ -329,6 +437,13 @@
     clone.querySelectorAll(`[${UI_ATTR}="1"]`).forEach((el) => el.remove());
     const text = (clone.innerText || clone.textContent || '').trim();
     return text.replace(/\s+/g, ' ').trim();
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   function extractMessageText(element) {
