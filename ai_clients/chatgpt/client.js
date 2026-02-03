@@ -13,6 +13,7 @@
   const BUTTON_CONTAINER_CLASS = 'gemini-to-notion-button-container';
 
   let ui = null;
+  let flows = null;
   let log = console;
   const STUB_BUTTON_ID = 'notion-archiver-chatgpt-stub-btn';
   let observer = null;
@@ -33,6 +34,7 @@
 
   function init(context) {
     ui = context.ui;
+    flows = context.flows;
     log = context.log || console;
 
     // スタブ動作: 注入と手動切替が動いていることだけ確認する。
@@ -165,7 +167,39 @@
       summarizeButton.textContent = 'まとめ作成';
       summarizeButton.title = 'まとめ作成';
       summarizeButton.addEventListener('click', () => {
-        safeToast('clicked: inject', 'success');
+        log.info('[Archiver] ChatGPT clicked: summarize');
+        if (!flows || !flows.handleInjectPrompt) {
+          log.warn('[Archiver] ChatGPT summarize failed: reason=flow_unavailable');
+          safeToast('フローが見つかりません', 'error');
+          return;
+        }
+
+        flows.handleInjectPrompt({
+          client: api,
+          ui,
+          log,
+          button: summarizeButton,
+          onResult: (result) => {
+            if (!result || !result.ok) {
+              if (result && result.reason === 'thread_not_found') {
+                log.warn('[Archiver] ChatGPT summarize failed: reason=thread取得失敗');
+                return;
+              }
+
+              if (result && result.reason === 'clipboard_fallback') {
+                log.warn('[Archiver] ChatGPT summarize failed: reason=注入失敗');
+                log.warn('[Archiver] ChatGPT summarize failed: reason=clipboard_fallback');
+                return;
+              }
+
+              log.warn('[Archiver] ChatGPT summarize failed: reason=unknown');
+              return;
+            }
+
+            const length = result.length || 0;
+            log.info(`[Archiver] ChatGPT summarize injected length=${length}`);
+          }
+        });
       });
 
       const saveButton = document.createElement('button');
