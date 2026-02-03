@@ -7,10 +7,16 @@
  */
 (function (global) {
   const CLIENT_ID = 'chatgpt';
+  const INJECTED_ATTR = 'data-archiver-injected';
+  const UI_ATTR = 'data-archiver-ui';
+  const BUTTON_CLASS = 'gemini-to-notion-button';
+  const BUTTON_CONTAINER_CLASS = 'gemini-to-notion-button-container';
 
   let ui = null;
   let log = console;
   const STUB_BUTTON_ID = 'notion-archiver-chatgpt-stub-btn';
+  let observer = null;
+  let debounceTimer = null;
 
   function safeToast(message, type = 'success') {
     if (ui && ui.showToast) {
@@ -32,6 +38,7 @@
     // スタブ動作: 注入と手動切替が動いていることだけ確認する。
     log.info('[Archiver] ChatGPT client active (stub)');
     injectButtons();
+    startObserver();
   }
 
   // 未実装: ChatGPTのDOM抽出 + プロンプト注入を実装する。
@@ -105,33 +112,77 @@
   }
 
   function injectButtons() {
-    if (document.getElementById(STUB_BUTTON_ID)) return;
+    const assistantBlocks = findAssistantBlocks();
+    if (!assistantBlocks.length) return;
 
-    const button = document.createElement('button');
-    button.id = STUB_BUTTON_ID;
-    button.textContent = '仮ChatGPT用ボタン';
-    button.title = '仮ChatGPT用ボタン';
-    button.style.position = 'fixed';
-    button.style.right = '16px';
-    button.style.bottom = '16px';
-    button.style.zIndex = '10001';
-    button.style.padding = '8px 12px';
-    button.style.borderRadius = '999px';
-    button.style.border = '1px solid rgba(255,255,255,0.15)';
-    button.style.background = 'rgba(0,0,0,0.75)';
-    button.style.color = '#fff';
-    button.style.fontSize = '12px';
-    button.style.fontWeight = '600';
-    button.style.cursor = 'pointer';
+    assistantBlocks.forEach((block) => {
+      if (block.getAttribute(INJECTED_ATTR) === '1') return;
+      if (!block.textContent || block.textContent.trim().length < 10) return;
+      if (block.querySelector(`[${UI_ATTR}="1"]`)) return;
 
-    button.addEventListener('click', () => {
-      const ok = injectPrompt('test');
-      if (ok) {
-        safeToast('入力欄に test を入れました', 'success');
-      }
+      const btnContainer = document.createElement('div');
+      btnContainer.className = BUTTON_CONTAINER_CLASS;
+      btnContainer.setAttribute(UI_ATTR, '1');
+
+      const summarizeButton = document.createElement('button');
+      summarizeButton.className = BUTTON_CLASS;
+      summarizeButton.textContent = 'まとめ作成';
+      summarizeButton.title = 'まとめ作成';
+      summarizeButton.addEventListener('click', () => {
+        safeToast('clicked: inject', 'success');
+      });
+
+      const saveButton = document.createElement('button');
+      saveButton.className = BUTTON_CLASS;
+      saveButton.textContent = 'Notionへ保存';
+      saveButton.title = 'Notionへ保存';
+      saveButton.style.marginLeft = '8px';
+      saveButton.addEventListener('click', () => {
+        safeToast('clicked: save', 'success');
+      });
+
+      btnContainer.appendChild(summarizeButton);
+      btnContainer.appendChild(saveButton);
+
+      block.appendChild(btnContainer);
+      block.setAttribute(INJECTED_ATTR, '1');
     });
+  }
 
-    document.body.appendChild(button);
+  function findAssistantBlocks() {
+    const primary = Array.from(
+      document.querySelectorAll('[data-message-author-role="assistant"]'),
+    );
+    if (primary.length > 0) return primary;
+
+    const main = document.querySelector('main') || document.querySelector('[role="main"]');
+    if (!main) return [];
+
+    const candidates = Array.from(
+      main.querySelectorAll('article, section, div'),
+    );
+
+    return candidates.filter((el) => isLikelyMessage(el));
+  }
+
+  function isLikelyMessage(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.closest('form')) return false;
+    if (el.querySelector('textarea, [contenteditable="true"]')) return false;
+    const text = (el.textContent || '').trim();
+    if (text.length < 80) return false;
+    return true;
+  }
+
+  function startObserver() {
+    if (observer) return;
+    observer = new MutationObserver(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        injectButtons();
+      }, 300);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   const api = {
