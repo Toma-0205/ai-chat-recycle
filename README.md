@@ -45,50 +45,59 @@ Google Gemini での会話スレッド全体を AI が賢く要約し、Notion �
 
 ## 開発者向けガイド
 
-### 目的 / 全体像
-- Gemini の会話を Notion に保存する拡張機能です。
-- 将来的に ChatGPT などの他チャットを `ai_clients/` で追加できるよう構成しています。
+### これは何？
+- Geminiの会話をNotionに保存するChrome拡張。
+- ChatGPTなども後から足せるように、AIごとの処理を分けてある。
 
-### MV3 の構成（役割）
-- `content.js`: 入口/配線（クライアント選択・ミスマッチ検知・初期化）。
-- 主要ロジックは `ai_clients/` と `shared/` に集約。
-- `background.js`: Notion API 通信（保存/検索/取得）。
-- `options.*`: API Key / Database ID / アクティブクライアントの設定。
-- `popup.*`: 設定状態の確認 UI。
+### どこで動くか（MV3の役割）
+- `content.js`：ページ内で動く。ボタン表示、会話の抽出、入力欄への貼り付け、プレビュー表示など。
+- `background.js`：拡張の裏側で動く。Notion APIと通信して保存/検索/取得をする。
+- `options.*`：設定画面。Notion API Key / Database ID / モード（auto・手動・off）を保存する。
+- `popup.*`：設定できているかの簡易チェック。
 
-### ディレクトリ構成（重要）
-- `ai_clients/`: チャット種別ごとの差分（DOM 抽出・注入）
-  - `ai_clients/gemini/`: Gemini 実装
-  - `ai_clients/chatgpt/`: ChatGPT スタブ（注入確認のみ）
-- `shared/`: 共通ロジック
-  - `shared/flows/`: まとめ作成・保存フロー
-  - `shared/json/`: JSON 抽出（テスト対象）
-  - `shared/config/`: ストレージ設定（activeClientId）
-- `shared/ui/`: 共通UI（トースト/プレビュー/インジケータ）
+### どこに何を書くか（フォルダのルール）
+- `ai_clients/`：AIごとの違いを書く（DOM抽出・注入など）
+  - `gemini/`：Gemini用の実装
+  - `chatgpt/`：今は注入確認用ボタンだけ（本実装はこれから）
+- `shared/`：どのAIでも共通で使う処理
+  - `flows/`：保存の流れ（プロンプト生成→JSON抽出→プレビュー→Notion保存）
+  - `json/`：JSON抽出（ここだけテストしてる）
+  - `config/`：設定保存まわり（activeClientIdなど）
+  - `ui/`：トースト、プレビューなどのUI
 
-### 主要フロー（概要）
-- まとめ作成 → 会話抽出 → JSON 出力プロンプト生成 → 入力欄へ貼付
-- JSON 抽出 → プレビュー → Notion 保存
+### 主な流れ
+- まとめ作成：会話を取り出す → JSONで返すようにプロンプト作る → 入力欄に入れる  
+- 保存：JSONを抜き出す → プレビューで確認 → Notionに保存（Notion通信はbackground）
 
 ### Autoモード
-- `activeClientId = auto` の場合は URL から client を自動選択します。
-- 未対応ページでは「unsupported」を表示して何もしません。
+- `activeClientId = auto` なら、開いてるURLでGemini/ChatGPTを自動で選ぶ。
+- 対応してないページでは何もしない（トーストで知らせる）。
 
-### 動作確認トースト
-- 状態はトーストで表示します。
-- 例: `Archiver: auto→chatgpt`, `Archiver: mismatch (active=gemini, page=chatgpt)`, `Archiver: unsupported (<host>)`
+### トースト（状態表示）
+- いま有効になっているAIを表示する  
+  - 例：`gemini` / `chatgpt`（Autoでも最終的に選ばれた方を出す）
+- 設定と開いてるページがズレているとき  
+  - 例：`対象外（設定: gemini / ページ: chatgpt）`
+- そもそも未対応のサイトのとき  
+  - 例：`未対応のページ（<host>）`
 
-### 新しい AI チャットを追加する手順
-1. `ai_clients/<name>/client.js` を作成
-2. `matches(url)` と DOM 抽出 / 注入を実装
-3. `manifest.json` の `content_scripts.matches` に対象URLを追加
-4. `options.html` のクライアント選択に追加（手動切替対応）
+### 新しいAIを追加する手順
+1. `ai_clients/<name>/client.js` を作る（新しいAI用のファイル）
+2. そのAIだと判定する関数と、DOM操作を実装する  
+   - `matches(url)`（このAIのページか？）  
+   - `extractThread` / `extractResponseText` / `extractPromptText` / `injectPrompt`
+3. `ai_clients/registry.js` から使えるように登録する  
+   - `global.ArchiverClients[CLIENT_ID] = ...`
+4. `manifest.json` に対応URLと読み込みファイルを追加する  
+   - `content_scripts.matches` にURLを追加  
+   - `content_scripts.js` に `ai_clients/<name>/client.js` を追加（**registry.js より前**）
+5. 手動切替に出したいなら `options.html` の選択肢（activeClientId）にも追加する
 
 ### テスト
-- 実行方法: `npm test`
-- 対象: `shared/json/extract.js` のみ
-- 理由: DOM に依存しない純粋関数を最小の自動テストで保証するため
+- `npm test`
+- 対象は `shared/json/extract.js` だけ  
+  DOMに依存しない部分だけ自動テストで固めるため。
 
-### ChatGPT 対応状況
-- 現状は **スタブ** です（注入確認・手動切替の動作確認のみ）。
-- DOM 抽出 / 入力欄注入 / 保存フローは TODO。
+### ChatGPTの対応状況
+- いまは「ページに注入できてるか確認する」段階（確認用ボタンのみ）。
+- DOM抽出・入力欄注入・保存フローはこれから。
