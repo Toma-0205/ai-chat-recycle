@@ -4,9 +4,10 @@
 
 /* ボタンコンテナ（回答の下） */
 .gemini-to-notion-button-container {
-  display: inline-flex;
+  display: flex !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
   align-items: center;
-  margin-left: 8px;
   margin-top: 8px;
   flex-wrap: wrap; 
   gap: 8px;

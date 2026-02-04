@@ -95,7 +95,12 @@ ${threadText}`;
       if (!credentialCheck.hasCredentials) {
         // Notionの認証情報が未設定のため中断する。
         log.warn('[Archiver] Notion credentials missing');
-        ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        // ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        if (ui.showConnectDialog) {
+          ui.showConnectDialog();
+        } else {
+          ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        }
         resetButton(button);
         return;
       }
