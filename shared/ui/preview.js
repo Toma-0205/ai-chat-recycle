@@ -17,7 +17,7 @@
     dialog.className = 'gemini-to-notion-dialog editable-preview';
 
     dialog.innerHTML = `
-      <h3>📓 Notionへ保存 - 内容確認</h3>
+      <h3>Notionへ保存 - 内容確認</h3>
 
       <div class="form-group">
         <label>名前（タイトル）</label>
@@ -71,6 +71,45 @@
     });
   }
 
+  function showConnectDialog() {
+    const existingDialog = document.querySelector('.gemini-to-notion-dialog-overlay');
+    if (existingDialog) existingDialog.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'gemini-to-notion-dialog-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'gemini-to-notion-dialog connect-dialog';
+    
+    // 簡易スタイル適用 (class定義がない場合用)
+    dialog.style.textAlign = 'center';
+    dialog.style.maxWidth = '400px';
+
+    dialog.innerHTML = `
+      <h3>Notionと接続されていません</h3>
+      <div style="margin: 24px 0; color: #ccc; font-size: 0.9rem;">
+        Notionへの保存や引用を行うには、<br>API設定が必要です。
+      </div>
+      <div class="dialog-actions" style="justify-content: center;">
+        <button class="dialog-btn cancel" style="margin-right: 12px;">キャンセル</button>
+        <button class="dialog-btn confirm">設定画面を開く</button>
+      </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.confirm').addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+      overlay.remove();
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
   function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -80,4 +119,5 @@
 
   global.ArchiverUI = global.ArchiverUI || {};
   global.ArchiverUI.openPreviewDialog = openPreviewDialog;
+  global.ArchiverUI.showConnectDialog = showConnectDialog;
 })(typeof window !== 'undefined' ? window : globalThis);

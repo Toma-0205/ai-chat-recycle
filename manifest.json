@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini to Notion Knowledge Archiver",
-  "version": "4.0.0",
+  "version": "1.0.0",
   "description": "Geminiの会話を要約プロンプトで構造化し、Notionへ保存する拡張機能",
   "permissions": ["storage"],
   "host_permissions": ["https://api.notion.com/*"],

@@ -118,7 +118,7 @@ async function createNotionPage(data) {
 
 async function searchNotionPages(query = '') {
   const { notionApiKey, notionDatabaseId } = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
-  if (!notionApiKey || !notionDatabaseId) throw new Error('Notion設定が未完了です');
+  if (!notionApiKey || !notionDatabaseId) throw new Error('MISSING_CREDENTIALS');
 
   const payload = {
     page_size: 20, // v5.4: 20件に増加
@@ -234,6 +234,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (message.action === 'openOptionsPage') {
+    chrome.runtime.openOptionsPage();
+    return true;
+  }
 });
 
-console.log('Gemini to Notion Knowledge Archiver v5.0: Background service worker initialized');
+console.log('Gemini to Notion Knowledge Archiver v1.0: Background service worker initialized');

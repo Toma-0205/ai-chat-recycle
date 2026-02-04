@@ -2,8 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Gemini to Notion v4.0 - 設定</title>
+  <title>Gemini to Notion v1.0 - 設定</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
@@ -27,7 +28,11 @@
     }
     .btn {
       padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-      background: linear-gradient(135deg, #00d4ff, #7c3aed); color: #fff;
+      background: #3b82f6; color: #fff; /* Solid blue */
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #2563eb;
     }
     .client-status { color: #9ca3af; margin-top: 8px; margin-bottom: 16px; }
     .auto-box {
@@ -60,7 +65,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>📓 Gemini to Notion <span style="font-size:0.5em; background:#00d4ff; color:#fff; padding:2px 6px; border-radius:4px;">v4.0</span></h1>
+    <h1>Gemini to Notion <span style="font-size:0.5em; background:#00d4ff; color:#fff; padding:2px 6px; border-radius:4px;">v1.0</span></h1>
 
     <div class="card">
       <h2>Notion API設定</h2>
@@ -69,9 +74,14 @@
         <h3>⚠️ 重要な手順：データベースへの接続</h3>
         <ol>
           <li><a href="https://www.notion.so/my-integrations" target="_blank" style="color:#00d4ff;">Notion Integrations</a> でインテグレーションを作成</li>
-          <li>発行された <code>Internal Integration Token</code> をコピーして下に入力</li>
-          <li><span class="warning">保存先のNotionデータベースを開き、右上の「...」メニューなどから「Connect to」または「接続」を選択し、作成したインテグレーションを追加してください。</span> これを忘れると保存できません。</li>
-          <li>データベースのURLからIDをコピーして下に入力<br><small>例: notion.so/myworkspace/<b>a8b...123</b>?v=...</small></li>
+          <li>発行された <code>Internal Integration Token</code> をコピー(Show→Copy)して、本ページの中央部にペースト</li>
+          <li>NotionのInternal画面を下にスクロールし、Save</li>
+          <li><a href="https://www.notion.so/" target="_blank" style="color:#00d4ff;">Notion</a>を開き、左サイドバーのPrivateをホバーし、+ボタン(Add a page)をクリック</li>
+          <li>New page名を設定(例：Gemini Knowledge)</li>
+          <li>画面下部のDatabaseをクリックし、Empty Databaseを選択</li>
+          <li>右上の「...」（三点リーダー） をクリック</li>
+          <li>少し下にスクロールし「Connections」をクリックし、作成したNew page名(例：Gemini Knowledge)を選択しConfirmをクリック</li>
+          <li>データベースのURLからIDをコピーして下に入力<br><small>例: notion.so/<b>a8b...123</b>?...</small>(notion.so/の後ろから?の前まで)</li>
         </ol>
       </div>
       
@@ -83,7 +93,10 @@
       <label>Database ID</label>
       <input type="text" id="notionDatabaseId" placeholder="xxxxxxxx...">
       
-      <button class="btn" id="saveBtn">💾 設定を保存</button>
+      
+      <div style="text-align: right;">
+        <button class="btn" id="saveBtn">設定を保存</button>
+      </div>
     </div>
 
     <div class="card">
@@ -91,7 +104,7 @@
       <p>通常は自動判定で問題ありません。必要時のみ詳細設定を使ってください。</p>
       <div class="auto-box">
         <div class="auto-title">自動判定（推奨）</div>
-        <button class="btn" id="saveAutoBtn">✅ Autoにする</button>
+        <button class="btn" id="saveAutoBtn">Autoにする</button>
       </div>
       <p class="client-status" id="clientStatus">現在: 読み込み中...</p>
       <details class="advanced" id="advancedSettings">
@@ -103,7 +116,9 @@
             <option value="chatgpt">ChatGPT (stub)</option>
             <option value="off">Off (無効)</option>
           </select>
-          <button class="btn" id="saveClientBtn">🧭 手動設定を保存</button>
+          <div style="text-align: right;">
+            <button class="btn" id="saveClientBtn">手動設定を保存</button>
+          </div>
         </div>
       </details>
     </div>
