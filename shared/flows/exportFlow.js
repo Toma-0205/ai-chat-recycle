@@ -27,9 +27,10 @@
     button.disabled = false;
   }
 
-  function buildSummaryPrompt(messages) {
+  function buildSummaryPrompt(messages, client) {
+    const assistantLabel = client && client.displayName ? client.displayName : 'アシスタント';
     const threadText = messages.map(msg => {
-      const roleLabel = msg.role === 'user' ? '【ユーザー】' : '【Gemini】';
+      const roleLabel = msg.role === 'user' ? '【ユーザー】' : `【${assistantLabel}】`;
       return `${roleLabel}\n${msg.content}`;
     }).join('\n\n---\n\n');
 
@@ -45,7 +46,7 @@ title: 会話全体の核心を突いた30文字以内のタイトル。
 
 summary: 全体の要点を3行程度でまとめた概要。
 
-content: 詳細な議事録。全ての質問と回答のペア（ユーザーの質問とGeminiの回答）について、一つずつ漏れなく内容を要約して記載してください。Markdown形式を使用し、後から見返してスレッド全体の流れと詳細が完全に把握できるように整理してください。
+content: 詳細な議事録。全ての質問と回答のペア（ユーザーの質問と${assistantLabel}の回答）について、一つずつ漏れなく内容を要約して記載してください。Markdown形式を使用し、後から見返してスレッド全体の流れと詳細が完全に把握できるように整理してください。
 
 todos: 抽出された「次にやるべきこと（TODO）」と「既に完了したこと（DIDs）」を箇条書きで。なければ空文字。
 
@@ -69,7 +70,7 @@ ${threadText}`;
         return;
       }
 
-      const prompt = buildSummaryPrompt(messages);
+      const prompt = buildSummaryPrompt(messages, client);
       const success = client.injectPrompt(prompt);
 
       if (success) {
@@ -94,7 +95,12 @@ ${threadText}`;
       if (!credentialCheck.hasCredentials) {
         // Notionの認証情報が未設定のため中断する。
         log.warn('[Archiver] Notion credentials missing');
-        ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        // ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        if (ui.showConnectDialog) {
+          ui.showConnectDialog();
+        } else {
+          ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+        }
         resetButton(button);
         return;
       }

@@ -184,7 +184,8 @@
         <div id="import-list" class="import-list">
           <div class="loading-spinner">読み込み中...</div>
         </div>
-        <div class="dialog-actions">
+        <div class="dialog-actions" style="justify-content: space-between;">
+          <button id="import-debug-btn" class="dialog-btn" style="color: white !important; font-size: 0.8rem;">設定 (Debug)</button>
           <button class="dialog-btn cancel">閉じる</button>
         </div>
       </div>
@@ -192,6 +193,9 @@
     document.body.appendChild(overlay);
 
     overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#import-debug-btn').addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+    });
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.remove();
     });
@@ -207,7 +211,20 @@
         const response = await chrome.runtime.sendMessage({ action: 'searchNotion', query });
 
         if (!response.success) {
-          listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
+          if (response.error === 'MISSING_CREDENTIALS') {
+            listContainer.innerHTML = `
+              <div class="empty-msg">
+                <p>Notionと接続されていません</p>
+                <button id="connect-notion-btn" class="gemini-to-notion-button" style="margin-top:12px;">設定画面を開く</button>
+              </div>
+            `;
+            document.getElementById('connect-notion-btn').addEventListener('click', () => {
+              chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+              overlay.remove();
+            });
+          } else {
+            listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
+          }
           return;
         }
 
@@ -269,6 +286,54 @@
   // ボタン注入（DOM依存）
   // =============================================================================
 
+  function handleNewChatButton() {
+    // 新規チャット判定（メッセージが存在しないかどうか）
+    const messages = extractThread();
+    const isNewChat = messages.length === 0;
+    const globalBtnId = 'gemini-to-notion-global-import-btn';
+    const existingBtn = document.getElementById(globalBtnId);
+
+    if (isNewChat) {
+      // 新規チャットかつボタン未表示なら追加
+      if (!existingBtn) {
+        const inputArea = document.querySelector('.input-area, rich-textarea, .ql-editor');
+        if (!inputArea) return;
+
+        const importButton = document.createElement('button');
+        importButton.id = globalBtnId;
+        importButton.className = BUTTON_CLASS;
+        importButton.textContent = 'Notionから引用';
+        importButton.title = 'Notionからページを選択して引用';
+        // プロンプト入力欄の上に固定表示(チャットのやり取りがない時のみ表示)
+        importButton.style.position = 'absolute';
+        importButton.style.bottom = '100%';
+        importButton.style.right = '0';
+        importButton.style.left = 'auto';
+        importButton.style.marginBottom = '20px';
+        importButton.style.marginRight = '240px';
+        importButton.style.zIndex = '100';
+        importButton.style.background = 'linear-gradient(135deg, #2d2d2d, #000000)';
+        importButton.style.fontSize = '13px';
+        importButton.style.padding = '8px 16px';
+        
+        importButton.addEventListener('click', handleNotionImport);
+
+        if (inputArea.parentElement) {
+          const parent = inputArea.parentElement;
+          const computedStyle = window.getComputedStyle(parent);
+          if (computedStyle.position === 'static') {
+            parent.style.position = 'relative';
+          }
+          parent.appendChild(importButton);
+        }
+      }
+    } else {
+      // メッセージがあるならグローバルボタンは削除（回答個別ボタンを使うため）
+      if (existingBtn) {
+        existingBtn.remove();
+      }
+    }
+  }
   function injectButtonsToResponses() {
     const selectors = [
       '.model-response',
@@ -339,6 +404,7 @@
     clearTimeout(window.geminiToNotionDebounce);
     window.geminiToNotionDebounce = setTimeout(() => {
       injectButtonsToResponses();
+      handleNewChatButton();
       removeGlobalButtons();
     }, 500);
   });
@@ -350,6 +416,7 @@
     if (oldImportBtn) oldImportBtn.remove();
 
     injectButtonsToResponses();
+    handleNewChatButton();
     observer.observe(document.body, { childList: true, subtree: true });
   }
 

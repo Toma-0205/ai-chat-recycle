@@ -26,6 +26,7 @@
       log.error(
         "[Archiver] registry/config/flows/ui が見つかりません。manifest の読み込み順を確認してください。",
       );
+      alert("【Gemini to Notion】\n拡張機能の読み込みに失敗しました。\n正しく動作しない可能性があるため、ページを再読み込みしてください。");
       return;
     }
 
@@ -71,6 +72,7 @@
       ui: {
         showToast: window.ArchiverUI.showToast,
         showEditablePreviewDialog: window.ArchiverUI.openPreviewDialog,
+        showConnectDialog: window.ArchiverUI.showConnectDialog,
       },
       log,
     });
