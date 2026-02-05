@@ -324,7 +324,6 @@
       saveButton.className = BUTTON_CLASS;
       saveButton.textContent = 'Notionへ保存';
       saveButton.title = 'Notionへ保存';
-      saveButton.style.marginLeft = '8px';
       saveButton.addEventListener('click', (event) => {
         if (!flows || !flows.handleSaveResponse) {
           log.warn('[Archiver] ChatGPT save failed: reason=flow_unavailable');
