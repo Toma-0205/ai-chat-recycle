@@ -383,7 +383,7 @@
 
         const summarizeButton = document.createElement('button');
         summarizeButton.className = BUTTON_CLASS;
-        summarizeButton.textContent = 'まとめを作成';
+        summarizeButton.textContent = 'チャットを要約';
         summarizeButton.title = 'ここまでの会話を要約するプロンプトを入力欄に貼り付けます';
         summarizeButton.style.marginLeft = '8px';
         summarizeButton.style.background = 'linear-gradient(135deg, #7c3aed, #4f46e5)';

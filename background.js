@@ -211,6 +211,35 @@ async function getNotionPageBlocks(pageId) {
   }).filter(line => line.length > 0).join('\n');
 }
 
+async function checkNotionConnection() {
+  const { notionApiKey, notionDatabaseId } = await chrome.storage.local.get(['notionApiKey', 'notionDatabaseId']);
+  if (!notionApiKey || !notionDatabaseId) {
+    return { success: false, error: 'MISSING_CREDENTIALS' };
+  }
+
+  try {
+    const response = await fetch(`https://api.notion.com/v1/databases/${notionDatabaseId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${notionApiKey}`,
+        'Notion-Version': NOTION_API_VERSION
+      }
+    });
+
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 401) return { success: false, error: 'INVALID_API_KEY' };
+      if (status === 404) return { success: false, error: 'INVALID_DATABASE_ID' };
+      if (status === 403) return { success: false, error: 'NO_DATABASE_ACCESS' };
+      return { success: false, error: `HTTP_ERROR_${status}` };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 // =============================================================================
 // メッセージハンドラー
 // =============================================================================
@@ -228,6 +257,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(credentials => {
         sendResponse({ hasCredentials: !!(credentials.notionApiKey && credentials.notionDatabaseId) });
       });
+    return true;
+  }
+
+  if (message.action === 'checkNotionConnection') {
+    checkNotionConnection()
+      .then(result => sendResponse(result));
     return true;
   }
 

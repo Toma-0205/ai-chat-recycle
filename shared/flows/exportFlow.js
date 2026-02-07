@@ -91,15 +91,15 @@ ${threadText}`;
     setButtonState(button, { text: BUTTON_TEXT.checking, disabled: true });
 
     try {
-      const credentialCheck = await chrome.runtime.sendMessage({ action: 'getCredentials' });
-      if (!credentialCheck.hasCredentials) {
-        // Notionの認証情報が未設定のため中断する。
-        log.warn('[Archiver] Notion credentials missing');
-        // ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+      const connectionCheck = await chrome.runtime.sendMessage({ action: 'checkNotionConnection' });
+      if (!connectionCheck.success) {
+        // Notionの認証情報が未設定、または接続エラーのため中断する。
+        log.warn('[Archiver] Notion connection failed:', connectionCheck.error);
+        
         if (ui.showConnectDialog) {
           ui.showConnectDialog();
         } else {
-          ui.showToast('Notion設定が未完了です。オプション画面から設定してください。', 'error');
+          ui.showToast('Notion設定が未完了または無効です。', 'error');
         }
         resetButton(button);
         return;
