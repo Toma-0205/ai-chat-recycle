@@ -148,7 +148,18 @@ async function searchNotionPages(query = '') {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to fetch pages');
+    const status = response.status;
+    
+    // HTTPステータスコードに応じて詳細なエラーメッセージを返す
+    if (status === 401) {
+      throw new Error('INVALID_API_KEY');
+    } else if (status === 404) {
+      throw new Error('INVALID_DATABASE_ID');
+    } else if (status === 403) {
+      throw new Error('NO_DATABASE_ACCESS');
+    } else {
+      throw new Error(errorData.message || 'Failed to fetch pages');
+    }
   }
 
   const data = await response.json();

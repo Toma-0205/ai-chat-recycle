@@ -222,11 +222,33 @@
               chrome.runtime.sendMessage({ action: 'openOptionsPage' });
               overlay.remove();
             });
+          } else if (response.error === 'INVALID_API_KEY') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ API Keyが無効です</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">設定画面でAPI Keyを確認してください。</p>
+              </div>
+            `;
+          } else if (response.error === 'INVALID_DATABASE_ID') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ Database IDが無効です</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">データベースが存在しないか、IDが間違っています。</p>
+              </div>
+            `;
+          } else if (response.error === 'NO_DATABASE_ACCESS') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ データベースへのアクセス権限がありません</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">インテグレーションをデータベースに招待してください。</p>
+              </div>
+            `;
           } else {
             listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
           }
           return;
         }
+
 
         if (response.results.length === 0) {
           listContainer.innerHTML = '<div class="empty-msg">ページが見つかりませんでした</div>';
