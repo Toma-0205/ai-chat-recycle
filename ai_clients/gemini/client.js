@@ -185,7 +185,7 @@
           <div class="loading-spinner">読み込み中...</div>
         </div>
         <div class="dialog-actions" style="justify-content: space-between;">
-          <button id="import-debug-btn" class="dialog-btn" style="color: white !important; font-size: 0.8rem;">設定 (Debug)</button>
+          <button id="import-settings-btn" class="dialog-btn" style="color: white !important; font-size: 0.8rem;">設定</button>
           <button class="dialog-btn cancel">閉じる</button>
         </div>
       </div>
@@ -193,7 +193,7 @@
     document.body.appendChild(overlay);
 
     overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#import-debug-btn').addEventListener('click', () => {
+    overlay.querySelector('#import-settings-btn').addEventListener('click', () => {
       chrome.runtime.sendMessage({ action: 'openOptionsPage' });
     });
     overlay.addEventListener('click', (e) => {

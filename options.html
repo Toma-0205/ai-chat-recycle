@@ -58,6 +58,34 @@
     
     .steps { margin-top: 20px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; }
     .steps h3 { margin-top: 0; color: #ccc; font-size: 1rem; }
+    
+    /* Dialog styles */
+    .gemini-to-notion-dialog-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000;
+    }
+    .gemini-to-notion-dialog {
+      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+      border-radius: 16px; padding: 24px; max-width: 500px; width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e8e8e8;
+    }
+    .dialog-btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-weight: bold; transition: all 0.2s;
+    }
+    .dialog-btn.confirm {
+      background: #3b82f6; color: #fff;
+    }
+    .dialog-btn.confirm:hover {
+      background: #2563eb;
+    }
+    .dialog-actions {
+      display: flex; gap: 12px; margin-top: 16px;
+    }
     .steps ol { padding-left: 20px; color: #bbb; line-height: 1.6; }
     .steps li { margin-bottom: 8px; }
     .warning { color: #f87171; font-weight: bold; }
