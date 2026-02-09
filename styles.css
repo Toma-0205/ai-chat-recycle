@@ -105,6 +105,7 @@
   background: #1e1e2e;
   border-radius: 16px;
   padding: 24px;
+  box-sizing: border-box;
   max-width: 600px;
   width: 95%;
   max-height: 90vh;
@@ -146,6 +147,7 @@
 .gemini-to-notion-dialog .form-group textarea {
   width: 100%;
   padding: 10px 14px;
+  box-sizing: border-box; /* paddingを含めて幅計算 */
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);

@@ -185,7 +185,7 @@
           <div class="loading-spinner">読み込み中...</div>
         </div>
         <div class="dialog-actions" style="justify-content: space-between;">
-          <button id="import-debug-btn" class="dialog-btn" style="color: white !important; font-size: 0.8rem;">設定 (Debug)</button>
+          <button id="import-settings-btn" class="dialog-btn" style="color: white !important; font-size: 0.8rem;">設定</button>
           <button class="dialog-btn cancel">閉じる</button>
         </div>
       </div>
@@ -193,7 +193,7 @@
     document.body.appendChild(overlay);
 
     overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#import-debug-btn').addEventListener('click', () => {
+    overlay.querySelector('#import-settings-btn').addEventListener('click', () => {
       chrome.runtime.sendMessage({ action: 'openOptionsPage' });
     });
     overlay.addEventListener('click', (e) => {
@@ -222,11 +222,33 @@
               chrome.runtime.sendMessage({ action: 'openOptionsPage' });
               overlay.remove();
             });
+          } else if (response.error === 'INVALID_API_KEY') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ API Keyが無効です</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">設定画面でAPI Keyを確認してください。</p>
+              </div>
+            `;
+          } else if (response.error === 'INVALID_DATABASE_ID') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ Database IDが無効です</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">データベースが存在しないか、IDが間違っています。</p>
+              </div>
+            `;
+          } else if (response.error === 'NO_DATABASE_ACCESS') {
+            listContainer.innerHTML = `
+              <div class="error-msg">
+                <p>⚠️ データベースへのアクセス権限がありません</p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 8px;">インテグレーションをデータベースに招待してください。</p>
+              </div>
+            `;
           } else {
             listContainer.innerHTML = `<div class="error-msg">エラー: ${response.error}</div>`;
           }
           return;
         }
+
 
         if (response.results.length === 0) {
           listContainer.innerHTML = '<div class="empty-msg">ページが見つかりませんでした</div>';
@@ -361,7 +383,7 @@
 
         const summarizeButton = document.createElement('button');
         summarizeButton.className = BUTTON_CLASS;
-        summarizeButton.textContent = 'まとめを作成';
+        summarizeButton.textContent = 'チャットを要約';
         summarizeButton.title = 'ここまでの会話を要約するプロンプトを入力欄に貼り付けます';
         summarizeButton.style.marginLeft = '8px';
         summarizeButton.style.background = 'linear-gradient(135deg, #7c3aed, #4f46e5)';

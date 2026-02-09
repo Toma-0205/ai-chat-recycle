@@ -54,6 +54,9 @@ async function saveSettings() {
   
   await chrome.storage.local.set({ notionApiKey, notionDatabaseId });
   showToast('設定を保存しました ✓');
+  
+  // 保存後、チャットに戻るか確認（カスタムダイアログ）
+  showReturnToChatDialog();
 }
 
 saveBtn.addEventListener('click', saveSettings);
@@ -71,4 +74,38 @@ saveClientBtn.addEventListener('click', async () => {
   if (clientStatus) clientStatus.textContent = `現在: ${activeClientSelect.value}`;
   showToast('手動設定を保存しました ✓');
 });
+
+function showReturnToChatDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'gemini-to-notion-dialog-overlay';
+  overlay.style.zIndex = '10000';
+  
+  overlay.innerHTML = `
+    <div class="gemini-to-notion-dialog" style="max-width: 400px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">設定を保存しました</h3>
+        <button id="return-dialog-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999; padding: 0; line-height: 1;">×</button>
+      </div>
+      <p style="margin-bottom: 20px; color: #ccc;">チャットに戻りますか？</p>
+      <div class="dialog-actions" style="justify-content: flex-end;">
+        <button id="return-dialog-ok" class="dialog-btn confirm">OK</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(overlay);
+  
+  const closeBtn = document.getElementById('return-dialog-close');
+  const okBtn = document.getElementById('return-dialog-ok');
+  
+  closeBtn.addEventListener('click', () => overlay.remove());
+  okBtn.addEventListener('click', () => {
+    window.close();
+  });
+  
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', loadSettings);
