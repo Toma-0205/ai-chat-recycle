@@ -266,13 +266,16 @@
     if (!assistantBlocks.length) return;
 
     assistantBlocks.forEach((block) => {
-      if (block.getAttribute(INJECTED_ATTR) === '1') return;
+      if (isAlreadyInjected(block)) return;
       if (!block.textContent || block.textContent.trim().length < 10) return;
-      if (block.querySelector(`[${UI_ATTR}="1"]`)) return;
 
       const btnContainer = document.createElement('div');
       btnContainer.className = BUTTON_CONTAINER_CLASS;
       btnContainer.setAttribute(UI_ATTR, '1');
+      // Match ChatGPT message width to avoid drifting outside the prose area.
+      btnContainer.style.maxWidth = '640px';
+      btnContainer.style.marginLeft = 'auto';
+      btnContainer.style.marginRight = 'auto';
 
       const importButton = document.createElement('button');
       importButton.className = BUTTON_CLASS;
@@ -325,7 +328,6 @@
       saveButton.className = BUTTON_CLASS;
       saveButton.textContent = 'Notionへ保存';
       saveButton.title = 'Notionへ保存';
-      saveButton.style.marginLeft = '8px';
       saveButton.addEventListener('click', (event) => {
         if (!flows || !flows.handleSaveResponse) {
           log.warn('[Archiver] ChatGPT save failed: reason=flow_unavailable');
@@ -362,7 +364,7 @@
     const primary = Array.from(
       document.querySelectorAll('[data-message-author-role="assistant"]'),
     );
-    if (primary.length > 0) return primary;
+    if (primary.length > 0) return normalizeMessageBlocks(primary);
 
     const main = document.querySelector('main') || document.querySelector('[role="main"]');
     if (!main) return [];
@@ -371,7 +373,8 @@
       main.querySelectorAll('article, section, div'),
     );
 
-    return candidates.filter((el) => isLikelyMessage(el));
+    const likelyMessages = candidates.filter((el) => isLikelyMessage(el));
+    return normalizeMessageBlocks(likelyMessages);
   }
 
   function collectMessageElements(main) {
@@ -470,6 +473,33 @@
 
     if (parts.length === 0) return '';
     return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function isAlreadyInjected(block) {
+    if (!block || block.nodeType !== 1) return true;
+    if (block.getAttribute(INJECTED_ATTR) === '1') return true;
+    if (block.querySelector(`[${UI_ATTR}="1"]`)) return true;
+
+    const injectedAncestor = block.closest(`[${INJECTED_ATTR}="1"]`);
+    if (injectedAncestor && injectedAncestor !== block) return true;
+
+    if (block.closest(`[${UI_ATTR}="1"]`)) return true;
+    return false;
+  }
+
+  function normalizeMessageBlocks(blocks) {
+    const uniqueBlocks = [];
+    const seen = new Set();
+
+    blocks.forEach((block) => {
+      if (!block || seen.has(block)) return;
+      seen.add(block);
+      uniqueBlocks.push(block);
+    });
+
+    return uniqueBlocks.filter((block) => {
+      return !uniqueBlocks.some((other) => other !== block && other.contains(block));
+    });
   }
 
   function isLikelyMessage(el) {
