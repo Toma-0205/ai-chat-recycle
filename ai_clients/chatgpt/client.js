@@ -272,6 +272,10 @@
       const btnContainer = document.createElement('div');
       btnContainer.className = BUTTON_CONTAINER_CLASS;
       btnContainer.setAttribute(UI_ATTR, '1');
+      // Match ChatGPT message width to avoid drifting outside the prose area.
+      btnContainer.style.maxWidth = '640px';
+      btnContainer.style.marginLeft = 'auto';
+      btnContainer.style.marginRight = 'auto';
 
       const importButton = document.createElement('button');
       importButton.className = BUTTON_CLASS;
