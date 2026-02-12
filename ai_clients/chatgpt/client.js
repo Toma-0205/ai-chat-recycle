@@ -11,6 +11,7 @@
   const UI_ATTR = 'data-archiver-ui';
   const BUTTON_CLASS = 'gemini-to-notion-button';
   const BUTTON_CONTAINER_CLASS = 'gemini-to-notion-button-container';
+  const GLOBAL_IMPORT_BUTTON_ID = 'chatgpt-to-notion-global-import-btn';
 
   let ui = null;
   let flows = null;
@@ -40,6 +41,7 @@
     // スタブ動作: 注入と手動切替が動いていることだけ確認する。
     log.info('[Archiver] ChatGPT client active (stub)');
     injectButtons();
+    handleNewChatButton();
     startObserver();
   }
 
@@ -259,6 +261,78 @@
     } catch (error) {
       ui.showToast(`エラー: ${error.message}`, 'error');
     }
+  }
+
+  function handleNewChatButton() {
+    const existingBtn = document.getElementById(GLOBAL_IMPORT_BUTTON_ID);
+    const isNewChat = !hasMessageBlocks();
+
+    if (isNewChat) {
+      if (existingBtn) return;
+
+      const inputContainer = findPromptContainer();
+      if (!inputContainer) return;
+
+      const importButton = document.createElement('button');
+      importButton.id = GLOBAL_IMPORT_BUTTON_ID;
+      importButton.className = BUTTON_CLASS;
+      importButton.textContent = 'Notionから引用';
+      importButton.title = 'Notionからページを選択して引用';
+      importButton.style.position = 'absolute';
+      importButton.style.bottom = '100%';
+      importButton.style.right = '0';
+      importButton.style.left = 'auto';
+      importButton.style.marginBottom = '16px';
+      importButton.style.marginRight = '24px';
+      importButton.style.zIndex = '100';
+      importButton.style.background = 'linear-gradient(135deg, #2d2d2d, #000000)';
+      importButton.style.fontSize = '13px';
+      importButton.style.padding = '8px 16px';
+      importButton.addEventListener('click', handleNotionImport);
+
+      const computedStyle = window.getComputedStyle(inputContainer);
+      if (computedStyle.position === 'static') {
+        inputContainer.style.position = 'relative';
+      }
+      inputContainer.appendChild(importButton);
+    } else if (existingBtn) {
+      existingBtn.remove();
+    }
+  }
+
+  function findPromptContainer() {
+    const main = document.querySelector('main') || document.querySelector('[role="main"]');
+    const promptEditable = document.querySelector('#prompt-textarea');
+    if (promptEditable && (!main || promptEditable.closest('main') || promptEditable.closest('[role="main"]'))) {
+      return promptEditable.closest('form') || promptEditable.parentElement;
+    }
+
+    const textarea = document.querySelector('textarea');
+    if (textarea && (!main || textarea.closest('main') || textarea.closest('[role="main"]'))) {
+      return textarea.closest('form') || textarea.parentElement;
+    }
+
+    const editable = document.querySelector('[contenteditable="true"]');
+    if (editable && (!main || editable.closest('main') || editable.closest('[role="main"]'))) {
+      return editable.closest('form') || editable.parentElement;
+    }
+
+    const form = document.querySelector('form');
+    if (form && (!main || form.closest('main') || form.closest('[role="main"]'))) {
+      return form;
+    }
+
+    return null;
+  }
+
+  function hasMessageBlocks() {
+    const main = document.querySelector('main') || document.querySelector('[role="main"]');
+    if (!main) return true;
+
+    if (main.querySelector('[data-message-author-role]')) return true;
+
+    const candidates = Array.from(main.querySelectorAll('article, section, div'));
+    return candidates.some((el) => isLikelyMessage(el));
   }
 
   function injectButtons() {
@@ -487,6 +561,7 @@
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         injectButtons();
+        handleNewChatButton();
       }, 300);
     });
     observer.observe(document.body, { childList: true, subtree: true });
